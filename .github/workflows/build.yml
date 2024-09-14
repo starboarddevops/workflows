@@ -66,7 +66,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ steps.get-project-name.outputs.project }}:${{ steps.tag.outputs.image_tag }
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ steps.get-project-name.outputs.project }}:${{ steps.tag.outputs.image_tag }}
 
       - name: Build with args and push
         if: ${{ inputs.build_args != 'None' }}
