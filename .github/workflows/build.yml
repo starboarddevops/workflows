@@ -1,0 +1,79 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      build_args:
+        required: false
+        default: 'None'
+        type: string
+    outputs:
+      image_tag:
+        description: "The Image Tag"
+        value: ${{ jobs.build_and_push.outputs.image_tag }}
+      project:
+        description: "The Github Repository Name"
+        value: ${{ jobs.build_and_push.outputs.project }}
+
+jobs:
+  build_and_push:
+    name: Build_and_Push
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+      project: ${{ steps.get-project-name.outputs.project_name}}
+    steps:
+      - name: Get Project Name
+        id: get-project-name
+        shell: bash
+        run: echo "project=${GITHUB_REPOSITORY##*/}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        id: aws_credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEV_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ ${{ inputs.environment }} == "dev" ]];then
+          echo "image_tag=$(date +'%y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+          else
+          echo "image_tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        if: ${{ inputs.build_args == 'None' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ steps.get-project-name.outputs.project }}:${{ steps.tag.outputs.image_tag }
+
+      - name: Build with args and push
+        if: ${{ inputs.build_args != 'None' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: |
+            ${{ inputs.build_args }}
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ steps.get-project-name.outputs.project }}:${{ steps.tag.outputs.image_tag }
