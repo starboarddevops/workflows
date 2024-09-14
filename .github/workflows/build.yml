@@ -8,6 +8,9 @@ on:
         required: false
         default: 'None'
         type: string
+      aws_region:
+        required: true
+        type: string
     outputs:
       image_tag:
         description: "The Image Tag"
@@ -34,7 +37,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DEV_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: true
 
       - name: Login to Amazon ECR
