@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.tag.outputs.image_tag }}
-      project: ${{ steps.get-project-name.outputs.project_name}}
+      project: ${{ steps.get-project-name.outputs.project}}
     steps:
       - name: Get Project Name
         id: get-project-name
